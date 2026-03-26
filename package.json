@@ -1,0 +1,35 @@
+{
+  "name": "quilp-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --kill-others --kill-others-on-fail \"npm run dev -w @quilp/api\" \"npm run dev -w @quilp/web\" \"npm run dev -w @quilp/ingress\" \"npm run dev -w @quilp/cognition\" \"tsx watch --env-file=.env packages/publish/src/schedule-worker.ts\" \"tsx watch --env-file=.env packages/publish/src/publisher-worker.ts\" \"tsx watch --env-file=.env packages/publish/src/timeout-worker.ts\"",
+    "dev:api": "npm run dev -w @quilp/api",
+    "dev:web": "npm run dev -w @quilp/web",
+    "dev:ingress": "npm run dev -w @quilp/ingress",
+    "dev:cognition": "npm run dev -w @quilp/cognition",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate dev --schema packages/db/prisma/schema.prisma",
+    "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "prisma": "^6.0.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2",
+    "vitest": "^1.4.0"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
+  }
+}

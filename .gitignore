@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Environment — NEVER commit these
+.env
+.env.*
+!.env.example
+
+# Prisma generated client
+packages/db/src/generated/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Vitest / coverage
+coverage/
+.vitest-cache/
+
+# Vite
+*.local
+
+# Local Claude Code config
+.claude/
+
+# Internal docs (audit reports, design drafts)
+.doc/

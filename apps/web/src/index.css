@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0A0A0A;
+  --bg-secondary: #111111;
+  --bg-tertiary: #1A1A1A;
+  --border: #222222;
+  --border-hover: #333333;
+  --text-primary: #F0F0F0;
+  --text-secondary: #888888;
+  --text-tertiary: #444444;
+  --accent: #E8F94A;
+  --danger: #FF4444;
+  --success: #44FF88;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: "DM Sans", sans-serif;
+    font-size: 14px;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+}
+
+@layer utilities {
+  .text-primary { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-tertiary { color: var(--text-tertiary); }
+  .bg-primary { background: var(--bg-primary); }
+  .bg-secondary { background: var(--bg-secondary); }
+  .bg-tertiary { background: var(--bg-tertiary); }
+  .active-button:active { transform: scale(0.98); }
+  .coming-soon-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.82);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.sidebar-item {
+  border-left: 2px solid transparent;
+  transition: all 100ms ease;
+}
+
+.stat-card {
+  transition: transform 100ms ease, border-color 100ms ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-hover);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page {
+  animation: fadeIn 150ms ease forwards;
+}

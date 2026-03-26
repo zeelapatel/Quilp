@@ -1,0 +1,32 @@
+{
+  "name": "@quilp/publish",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./src/index.ts",
+    "./approval": "./src/approval.ts",
+    "./schedule": "./src/schedule.ts",
+    "./scheduler": "./src/scheduler.ts",
+    "./retry": "./src/retry.ts",
+    "./adapters/linkedin": "./src/adapters/linkedin.ts",
+    "./publisher-worker": "./src/publisher-worker.ts",
+    "./timeout-worker": "./src/timeout-worker.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/publisher-worker.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "@quilp/shared": "^1.0.0",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2"
+  }
+}
+

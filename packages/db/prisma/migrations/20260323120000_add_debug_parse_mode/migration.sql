@@ -1,0 +1,2 @@
+-- No-op migration file restored to satisfy Prisma migration history.
+-- This folder was previously left without migration.sql.

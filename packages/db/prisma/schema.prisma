@@ -1,0 +1,307 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  starter
+  solo
+  pro
+  team
+  agency
+  enterprise
+}
+
+enum Region {
+  us
+  eu
+}
+
+enum Provider {
+  gmail
+  outlook
+}
+
+enum Platform {
+  linkedin_personal
+  linkedin_company
+  x
+  instagram
+  facebook
+  substack
+  beehiiv
+  slack
+  notion
+}
+
+enum PostFormat {
+  long_form
+  short_form
+  thread
+  single_tweet
+  caption
+  newsletter
+  broadcast
+}
+
+enum PostStatus {
+  draft
+  queued
+  approved
+  posted
+  failed
+  discarded
+}
+
+enum SourceType {
+  fathom
+  fireflies
+  otter
+  phantom
+  apollo
+  gong
+  tldv
+  loom
+  zoom
+  generic
+}
+
+enum ProcessingStatus {
+  pending
+  processing
+  completed
+  failed
+  held
+  dlq
+}
+
+enum VoiceProfileType {
+  personal
+  company
+}
+
+enum AccountType {
+  personal
+  company
+  page
+}
+
+enum ApprovalChannel {
+  email
+  slack
+}
+
+enum ApprovalResponse {
+  approved
+  rejected
+  edited
+  timed_out
+}
+
+enum TimeoutAction {
+  auto_post
+  discard
+}
+
+enum ApprovalMode {
+  require_approval
+  auto_post
+}
+
+model users {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  auth0_sub           String    @unique
+  email               Bytes     @db.ByteA
+  plan                Plan      @default(starter)
+  timezone            String    @default("UTC")
+  data_region         Region    @default(us)
+  debug_parse_all_emails Boolean @default(false)
+  debug_generate_posts Boolean @default(false)
+  llm_monthly_cap_usd Decimal?  @db.Decimal(10, 4)
+  approval_mode       ApprovalMode @default(require_approval)
+  approval_timeout_hrs Int        @default(4)
+  timeout_action      TimeoutAction @default(discard)
+  max_posts_per_day   Int        @default(3)
+  blackout_start      String?
+  blackout_end        String?
+  voice_profile_id    String?   @unique @db.Uuid
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  voice_profile       voice_profiles?     @relation("ActiveVoiceProfile", fields: [voice_profile_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  voice_profiles      voice_profiles[]    @relation("OwnedVoiceProfiles")
+  email_connections   email_connections[]
+  social_connections  social_connections[]
+  posts               posts[]
+  sender_allowlist    sender_allowlist[]
+}
+
+model email_connections {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String    @db.Uuid
+  provider            Provider
+  account_email       String?
+  account_name        String?
+  access_token_enc    String
+  refresh_token_enc   String
+  token_expires_at    DateTime
+  last_poll_at        DateTime?
+  last_history_id     String?
+  is_active           Boolean   @default(true)
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  user                users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  processed_emails    processed_emails[]
+
+  @@index([user_id, is_active])
+}
+
+model processed_emails {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String           @db.Uuid
+  connection_id     String           @db.Uuid
+  message_id        String
+  sender_email      String
+  sender_name       String?
+  source_type       SourceType
+  subject           String
+  extracted_data    Json
+  confidence_score  Int
+  processing_status ProcessingStatus @default(pending)
+  held_reason       String?
+  raw_processed_at  DateTime         @default(now())
+  created_at        DateTime         @default(now())
+
+  connection        email_connections @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+  posts             posts[]
+
+  @@unique([connection_id, message_id])
+  @@index([user_id, created_at(sort: Desc)])
+  @@index([connection_id, message_id])
+}
+
+model posts {
+  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String     @db.Uuid
+  source_email_id   String?    @db.Uuid
+  platform          Platform
+  format            PostFormat
+  content           String
+  content_original  String?
+  category          String
+  confidence_score  Int?
+  voice_score       Int?
+  llm_model         String?
+  generation_ms     Int?
+  prompt_tokens     Int?
+  completion_tokens Int?
+  status            PostStatus @default(draft)
+  scheduled_at      DateTime?
+  posted_at         DateTime?
+  platform_post_id  String?
+  is_user_edited    Boolean    @default(false)
+  created_at        DateTime   @default(now())
+  updated_at        DateTime   @updatedAt
+
+  user              users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  source_email      processed_emails?  @relation(fields: [source_email_id], references: [id], onDelete: SetNull)
+  approval_requests approval_requests[]
+
+  @@index([user_id, status, scheduled_at])
+  @@index([user_id, status, platform])
+  @@index([user_id, created_at])
+}
+
+model llm_usage {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String   @db.Uuid
+  month         String
+  input_tokens  Int      @default(0)
+  output_tokens Int      @default(0)
+  cost_usd      Decimal  @db.Decimal(10, 6)
+  call_count    Int      @default(0)
+  updated_at    DateTime @updatedAt
+
+  @@unique([user_id, month])
+  @@index([user_id, month])
+}
+
+model voice_profiles {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String           @db.Uuid
+  profile_type       VoiceProfileType @default(personal)
+  calibration_posts  Json
+  extracted_patterns Json
+  version            Int              @default(1)
+  last_calibrated_at DateTime         @default(now())
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+
+  user               users   @relation("OwnedVoiceProfiles", fields: [user_id], references: [id], onDelete: Cascade)
+  active_for         users?  @relation("ActiveVoiceProfile")
+
+  @@unique([user_id, profile_type])
+  @@index([user_id, profile_type])
+}
+
+model social_connections {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String      @db.Uuid
+  platform          Platform
+
+  access_token_enc  String
+  refresh_token_enc String?
+  token_expires_at  DateTime?
+
+  account_id        String
+  account_email     String
+  account_name      String
+  account_type      AccountType @default(personal)
+
+  scope_hash        String?
+  is_active         Boolean     @default(true)
+
+  created_at        DateTime    @default(now())
+  updated_at        DateTime    @updatedAt
+
+  user              users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, platform, account_type])
+  @@index([user_id, platform, is_active])
+}
+
+model approval_requests {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id        String           @db.Uuid
+  channel        ApprovalChannel @default(email)
+  sent_at        DateTime         @default(now())
+  responded_at   DateTime?
+  response       ApprovalResponse?
+  timeout_action TimeoutAction   @default(discard)
+  timeout_at     DateTime
+  token          String           @unique
+  created_at     DateTime         @default(now())
+
+  post           posts            @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id])
+  @@index([timeout_at, post_id])
+}
+
+model sender_allowlist {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  email      String
+  label      String?
+  created_at DateTime @default(now())
+
+  user       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, email])
+  @@index([user_id])
+}
